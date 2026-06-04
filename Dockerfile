@@ -15,11 +15,11 @@ FROM ghcr.io/gyselax/gyselalibxx_env:latest as builder
 
 RUN echo -e '[url "https://github.com/"]\n  insteadOf = git@github.com:' > .gitconfig
 RUN git clone --depth 1 https://github.com/gyselax/gysela-mini-app_io.git --recurse-submodules
-RUN cd gysela-mini-app_io && cmake -DCMAKE_PREFIX_PATH="/opt/googletest:/opt/openmp/" -B build -S .
-RUN cd gysela-mini-app_io && cmake --build build -j 6 compression_app
+RUN cmake -DCMAKE_PREFIX_PATH="/opt/googletest/;/opt/openmp/" -B build -S gysela-mini-app_io
+RUN cmake --build build -j 6
 RUN mkdir -p /opt/gysela
-RUN cp gysela-mini-app_io/build/apps/compression/compression_app /opt/gysela/compression_app
-RUN cp gysela-mini-app_io/build/apps/compression/pdi_out.yaml /opt/gysela/pdi_out.yaml
+RUN cp build/apps/compression/compression_app /opt/gysela/compression_app
+RUN cp build/apps/compression/pdi_out.yaml /opt/gysela/pdi_out.yaml
 
 FROM ghcr.io/gyselax/gyselalibxx_env:latest
 COPY --from=builder /opt/gysela /opt/gysela
