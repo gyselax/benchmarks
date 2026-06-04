@@ -110,4 +110,5 @@ class Dataset(BaseDataset):
             return trajectory_diff(tokam_trajectory(out), reference)
 
         return dict(
-            fields=fields, moments_fn=moments_fn, restart_fn=restart_fn)
+            fields=fields, moments_fn=moments_fn, restart_fn=restart_fn
+        )

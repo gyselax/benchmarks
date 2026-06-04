@@ -12,7 +12,13 @@ objective:
 dataset:
   - Simulated
   - Tokam2D[n_iter_init=5,restart_n_iter_ref=5]
-  # - Landau2X2V[n_iter_init=10,restart_n_iter_ref=10,landau_app_root=../gysela-mini-app_io]
+  # Landau runs the compiled C++/MPI mini-app inside the baked docker image
+  # (build it once: docker build -f benchmark_gysela/Dockerfile -t
+  # gysela-compression gysela-mini-app_io). From the host, set `launcher` to
+  # the shipped wrapper (absolute path, no spaces) that wraps each call in
+  # `docker run`. Leave `launcher` empty when benchopt itself runs inside that
+  # image. Parameter values must not contain spaces (benchopt name syntax).
+  # - Landau2X2V[n_iter_init=10,restart_n_iter_ref=10,n_ranks=4,launcher=/abs/path/to/benchmark_gysela/landau_docker_launch.sh]
 
 solver:
   - noise[noise_level=[1e-1,1e-3,1e-5]]

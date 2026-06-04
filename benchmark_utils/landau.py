@@ -1,16 +1,22 @@
 """Landau 2D2V moments, data generation and dynamic (restart) evaluation.
 
-Moments are adapted from ``gysela-mini-app_io`` ``evaluate_compression.py`` and
-extended with the electrostatic potential energy. The potential energy of a
-single ``fdistribu`` frame is obtained from the density via an FFT Poisson
-solve (periodic in x and y, matching the app's ``FFTPoissonSolver``); when a
-solved potential is already available (the diagnostics store it), it is used
-directly.
+Single module for everything Landau-specific (moments + HDF5/MPI driving): the
+Landau2X2V dataset declares the matching requirements (h5py, pyyaml). Moments
+are adapted from ``gysela-mini-app_io`` ``evaluate_compression`` and extended
+with the electrostatic potential energy (FFT Poisson solve of the density,
+periodic in x and y; or the solved potential when the diagnostics store it).
 
-The dynamic evaluation restarts the compiled C++ mini-app from a frame and
-collects per-diagnostic-step moments. ``landau_restart_trajectory`` is run once
-for the compressed frame and once for the uncompressed frame; the objective
-diffs the two trajectories.
+The mini-app is run via ``_run_landau``. With an empty ``launcher`` it runs
+``mpirun`` directly (benchopt running inside the gyselalibxx image, where the
+binary + PDI config are baked in at known paths). Otherwise ``launcher`` is an
+executable invoked with the minimal contract::
+
+    launcher <n_ranks> <config> <work_dir>
+
+i.e. the launcher owns the binary, the PDI config and the environment (see
+``landau_docker_launch.sh``); the benchmark only says how many ranks, which run
+config, and where to run. The binary is statically linked, so a docker launcher
+just needs the work dir (run config + outputs) visible.
 """
 
 import os
@@ -19,13 +25,23 @@ import shutil
 import subprocess
 import tempfile
 
+import h5py
 import numpy as np
+import yaml
 
-# h5py and yaml are imported lazily inside the functions that use them, so that
-# importing this module (e.g. for ``landau_moments``) needs only numpy.
+# Default in-image locations of the baked mini-app (see Dockerfile). Used for
+# the direct (no-launcher) path when benchopt runs inside that image.
+DEFAULT_BINARY = "/opt/gysela/compression_app"
+DEFAULT_PDI = "/opt/gysela/pdi_out.yaml"
 
-EPS = 1e-12
 
+def _abspath(p):
+    return os.path.abspath(os.path.expanduser(str(p)))
+
+
+# ---------------------------------------------------------------------------
+# Moments (numpy)
+# ---------------------------------------------------------------------------
 
 def squeeze_species(f: np.ndarray) -> np.ndarray:
     """Return a single-species (Nx, Ny, Nvx, Nvy) view of ``fdistribu``."""
@@ -94,45 +110,39 @@ def landau_moments(f, x, y, vx, vy, phi=None) -> dict:
                 potential_energy=potential)
 
 
+# ---------------------------------------------------------------------------
+# HDF5 frame / mesh I/O
+# ---------------------------------------------------------------------------
+
 def read_mesh(mesh_h5) -> dict:
     """Read the (x, y, vx, vy) mesh from a GYSELALIBXX HDF5 file."""
-    import h5py
     with h5py.File(mesh_h5, "r") as h5:
         return {k: h5[name][:] for k, name in
                 (("x", "MeshX"), ("y", "MeshY"),
                  ("vx", "MeshVx"), ("vy", "MeshVy"))}
 
 
-def read_landau_frame(h5_path, mesh_h5=None, dataset_name="fdistribu"):
-    """Read one ``fdistribu`` tensor and its mesh."""
-    import h5py
-    with h5py.File(h5_path, "r") as h5:
-        f = h5[dataset_name][:]
-    return f, read_mesh(mesh_h5 if mesh_h5 is not None else h5_path)
-
-
 def source_frame(source_h5, dataset_name="fdistribu") -> np.ndarray:
     """Read the uncompressed frame stored in ``source_h5``."""
-    import h5py
     with h5py.File(source_h5, "r") as h5:
         return h5[dataset_name][:]
 
 
-def landau_restart_available(binary, pdi_yaml, params_yaml) -> bool:
-    """True when the compiled mini-app and its configs are all present."""
-    return all(p is not None and os.path.exists(os.path.expanduser(str(p)))
-               for p in (binary, pdi_yaml, params_yaml))
+# ---------------------------------------------------------------------------
+# Running the mini-app
+# ---------------------------------------------------------------------------
 
+def _run_landau(base_config, work_dir, *, nbiter, restart_file="none",
+                nb_restart=0, n_ranks=4, launcher="", binary=DEFAULT_BINARY,
+                pdi=DEFAULT_PDI):
+    """Build the run config from ``base_config`` and run the mini-app.
 
-def _run_landau(binary, params_yaml, pdi_yaml, work_dir, *, nbiter,
-                restart_file="none", nb_restart=0, n_ranks=4,
-                mpi_launcher="mpirun"):
-    """Run the mini-app in ``work_dir`` and return the list of diag files."""
-    import yaml
+    Returns the sorted list of diagnostic files in ``work_dir``.
+    """
     work_dir = pathlib.Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    cfg = yaml.safe_load(open(os.path.expanduser(str(params_yaml))))
+    cfg = yaml.safe_load(open(_abspath(base_config)))
     cfg.setdefault("Input", {}).update(
         nb_restart=nb_restart, iter_offset=0,
         fdistribu_filename=str(restart_file))
@@ -140,35 +150,39 @@ def _run_landau(binary, params_yaml, pdi_yaml, work_dir, *, nbiter,
     run_cfg = work_dir / "config.yaml"
     yaml.safe_dump(cfg, open(run_cfg, "w"))
 
-    subprocess.run(
-        [mpi_launcher, "-n", str(n_ranks),
-         os.path.abspath(os.path.expanduser(str(binary))),
-         str(run_cfg), os.path.abspath(os.path.expanduser(str(pdi_yaml)))],
-        cwd=work_dir, check=True, env=os.environ.copy(),
-    )
+    # Pass the config by basename and run from the work dir, so paths resolve
+    # relative to the run directory regardless of how a launcher mounts it
+    # (e.g. docker bind-mounting work_dir at a different path). The restart
+    # filename in the config is likewise relative (see landau_restart_*).
+    config_arg = run_cfg.name
+    if launcher:
+        command = [os.path.expanduser(launcher), str(n_ranks), config_arg,
+                   str(work_dir)]
+    else:
+        command = ["mpirun", "-n", str(n_ranks), binary, config_arg, pdi]
+    subprocess.run(command, cwd=work_dir, check=True, env=os.environ.copy())
     return sorted(work_dir.glob("GYSELALIBXX_[0-9]*.h5"))
 
 
-def generate_landau_frame(binary, params_yaml, pdi_yaml, out_dir, *,
-                          n_iter, n_ranks=4, mpi_launcher="mpirun"):
+def generate_landau_frame(base_config, out_dir, *, n_iter, n_ranks=4,
+                          launcher="", binary=DEFAULT_BINARY, pdi=DEFAULT_PDI):
     """Cold-start the mini-app for ``n_iter`` steps; cache, return the frame.
 
-    Returns ``(frame_h5, initstate_h5)``. If the run directory already holds a
-    completed run, it is reused.
+    Returns ``(frame_h5, initstate_h5)``. A completed run in ``out_dir`` is
+    reused.
     """
     out_dir = pathlib.Path(out_dir)
     diags = sorted(out_dir.glob("GYSELALIBXX_[0-9]*.h5"))
     if not diags:
         diags = _run_landau(
-            binary, params_yaml, pdi_yaml, out_dir, nbiter=n_iter,
-            nb_restart=0, n_ranks=n_ranks, mpi_launcher=mpi_launcher)
+            base_config, out_dir, nbiter=n_iter, nb_restart=0, n_ranks=n_ranks,
+            launcher=launcher, binary=binary, pdi=pdi)
     initstate = out_dir / "GYSELALIBXX_initstate.h5"
     return diags[-1], (initstate if initstate.exists() else diags[-1])
 
 
 def _read_diag_moments(diag_files, mesh, dataset_name="fdistribu") -> dict:
     """Per-diagnostic-step moment trajectory from a list of diag files."""
-    import h5py
     traj = {k: [] for k in
             ("time", "mass", "momentum_x", "momentum_y", "momentum_norm",
              "kinetic_energy", "potential_energy")}
@@ -188,13 +202,14 @@ def _read_diag_moments(diag_files, mesh, dataset_name="fdistribu") -> dict:
     return traj
 
 
-def landau_restart_trajectory(binary, params_yaml, pdi_yaml, source_h5, f,
-                              mesh, *, n_iter, n_ranks=4,
-                              mpi_launcher="mpirun", dataset_name="fdistribu"):
+def landau_restart_trajectory(base_config, source_h5, f, mesh, *, n_iter,
+                              n_ranks=4, launcher="", binary=DEFAULT_BINARY,
+                              pdi=DEFAULT_PDI, dataset_name="fdistribu"):
     """Restart from frame ``f`` for ``n_iter`` steps; moment trajectory."""
-    import h5py
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
+        # Keep the restart file inside the work dir (referenced by basename) so
+        # it resolves from the run dir whatever path a launcher mounts it at.
         restart = tmp / "restart.h5"
         shutil.copy2(source_h5, restart)
         f = np.asarray(f)
@@ -205,7 +220,7 @@ def landau_restart_trajectory(binary, params_yaml, pdi_yaml, source_h5, f,
                     f"{f.shape}")
             h5[dataset_name][...] = f
         diags = _run_landau(
-            binary, params_yaml, pdi_yaml, tmp / "run", nbiter=n_iter,
-            nb_restart=1, restart_file=restart, n_ranks=n_ranks,
-            mpi_launcher=mpi_launcher)
+            base_config, tmp, nbiter=n_iter, nb_restart=1,
+            restart_file=restart.name, n_ranks=n_ranks, launcher=launcher,
+            binary=binary, pdi=pdi)
         return _read_diag_moments(diags, mesh, dataset_name)

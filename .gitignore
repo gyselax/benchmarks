@@ -1,7 +1,10 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
-# Generated simulation data (frames, restart references), keyed by params.
-# Tracked input configs under data/tokam2d/configs/ are kept.
-/data/
+# Generated simulation data (frames, restart references), keyed by params,
+# lives in data/<dataset>_n*/. Keep the tracked input configs in
+# data/<dataset>/configs/.
+/data/*
+!/data/tokam2d/
+!/data/landau2X2V/
 /outputs/
