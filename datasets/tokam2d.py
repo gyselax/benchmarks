@@ -36,7 +36,7 @@ class Dataset(BaseDataset):
     }
     requirements = [
         "numpy",
-        "pip::tokam2d[cpu] @ git+ssh://git@github.com/gyselax/tokam2d.git",
+        "pip::tokam2d[cpu] @ git+https://github.com/gyselax/tokam2d.git",
     ]
     prepare_cache_ignore = ("dtype",)
 
