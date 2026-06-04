@@ -1,0 +1,19 @@
+# Example benchopt run configuration.
+#   benchopt run benchmark_gysela --config example_config.yml
+#
+# Everything is configured through benchopt parameters (datasets, solver,
+# objective) — there is no separate benchmark config file.
+
+# restart_n_iter is the comparison horizon; it must be <= the dataset's
+# restart_n_iter_ref (the horizon of the precomputed reference restart).
+objective:
+  - Physics Compression[restart_n_iter=[10,50]]
+
+dataset:
+  - Simulated
+  - Tokam2D[n_iter_init=5,restart_n_iter_ref=5]
+  # - Landau2X2V[n_iter_init=10,restart_n_iter_ref=10,landau_app_root=../gysela-mini-app_io]
+
+solver:
+  - noise[noise_level=[1e-1,1e-3,1e-5]]
+  - wavelet[compression_ratio=[2,10,50],wavelet=db2]
