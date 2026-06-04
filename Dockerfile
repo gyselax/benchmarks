@@ -17,9 +17,10 @@ RUN echo -e '[url "https://github.com/"]\n  insteadOf = git@github.com:' > .gitc
 RUN git clone --depth 1 https://github.com/gyselax/gysela-mini-app_io.git --recurse-submodules
 RUN cmake -DCMAKE_PREFIX_PATH="/opt/googletest/;/opt/openmp/" -B build -S gysela-mini-app_io
 RUN cmake --build build -j 6
+USER root
 RUN mkdir -p /opt/gysela
 RUN cp build/apps/compression/compression_app /opt/gysela/compression_app
-RUN cp build/apps/compression/pdi_out.yaml /opt/gysela/pdi_out.yaml
+RUN cp gysela-mini-app_io/apps/compression/pdi_out.yaml /opt/gysela/pdi_out.yaml
 
 FROM ghcr.io/gyselax/gyselalibxx_env:latest
 COPY --from=builder /opt/gysela /opt/gysela

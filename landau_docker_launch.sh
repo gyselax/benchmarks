@@ -16,7 +16,7 @@ set -euo pipefail
 
 n_ranks=$1; config=$2; work_dir=$3
 
-IMAGE="${GYSELA_IMAGE:-gysela-compression:latest}"
+IMAGE="${GYSELA_IMAGE:-ghcr.io/gyselax/benchmarks/landau2x2v:latest}"
 BIN="${GYSELA_BIN:-/opt/gysela/compression_app}"
 PDI="${GYSELA_PDI:-/opt/gysela/pdi_out.yaml}"
 
