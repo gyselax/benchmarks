@@ -3,11 +3,13 @@ import pathlib
 from benchopt import BaseDataset
 from benchopt import safe_import_context
 
-from benchmark_utils import (
+
+from benchmark_utils.landau import (
     landau_moments, read_mesh, source_frame, landau_restart_available,
-    generate_landau_frame, landau_restart_trajectory, trajectory_diff,
-    dump_trajectory, load_trajectory,
+    generate_landau_frame, landau_restart_trajectory
 )
+from benchmark_utils.metrics import trajectory_diff
+from benchmark_utils.storage import dump_trajectory, load_trajectory
 
 with safe_import_context() as import_ctx:
     import numpy as np

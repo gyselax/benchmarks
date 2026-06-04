@@ -7,8 +7,6 @@ the static check; ``run_tokam`` runs the simulation (from the analytic IC or
 restarting from given fields) and ``tokam_trajectory`` turns its output into a
 per-diagnostic-step moment trajectory for the dynamic comparison.
 """
-
-import importlib.util
 import os
 
 import numpy as np
@@ -23,25 +21,6 @@ def tokam_moments(density, potential, x, y) -> dict:
     kinetic = float(0.5 * np.sum(dphi_dx**2 + dphi_dy**2) * dV)
     return dict(mass=mass, thermal_energy=thermal, kinetic_energy=kinetic,
                 energy=thermal + kinetic)
-
-
-def tokam_available() -> bool:
-    """True when the installable ``tokam2d`` package is importable."""
-    return importlib.util.find_spec("tokam2d") is not None
-
-
-def run_tokam(base_config, *, initial_fields=None, n_iter=None) -> dict:
-    """Run tokam2d (analytic IC, or restart from ``initial_fields``).
-
-    Returns the ``run_simulation`` output dict: ``fields`` (dict of
-    ``[time, Ny, Nx]`` real arrays), ``time``, ``x``, ``y`` and
-    ``final_fields``.
-    """
-    from tokam2d import run_simulation
-    return run_simulation(
-        os.path.expanduser(str(base_config)),
-        initial_fields=initial_fields, n_iter=n_iter,
-    )
 
 
 def tokam_trajectory(out: dict) -> dict:

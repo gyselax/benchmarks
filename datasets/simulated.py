@@ -1,7 +1,8 @@
 import numpy as np
 from benchopt import BaseDataset
 
-from benchmark_utils import tokam_moments, landau_moments
+from benchmark_utils.tokam import tokam_moments
+from benchmark_utils.landau import landau_moments
 
 
 class Dataset(BaseDataset):

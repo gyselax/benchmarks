@@ -5,10 +5,11 @@ from benchopt.config import get_data_path
 import pathlib
 import numpy as np
 
-from benchmark_utils import (
-    tokam_moments, tokam_available, run_tokam, tokam_trajectory,
-    trajectory_diff, dump_trajectory, load_trajectory,
-)
+from tokam2d import run_simulation
+
+from benchmark_utils.tokam import tokam_moments, tokam_trajectory
+from benchmark_utils.storage import dump_trajectory, load_trajectory
+from benchmark_utils.comparison import trajectory_diff
 
 
 class Dataset(BaseDataset):
@@ -60,17 +61,11 @@ class Dataset(BaseDataset):
 
     def _ensure_prepared(self):
         """Generate the frame and the uncompressed restart reference."""
-        if not tokam_available():
-            raise RuntimeError(
-                "Tokam2D needs the tokam2d package. Install it with "
-                "'pip install \"tokam2d[cpu] @ "
-                "git+ssh://git@github.com/gyselax/tokam2d.git\"'."
-            )
         config = self._resolve_config()
         data_dir = self._data_dir()
         frame_npz = data_dir / "frame.npz"
         if not frame_npz.exists():
-            out = run_tokam(config, n_iter=self.n_iter_init)
+            out = run_simulation(config, n_iter=self.n_iter_init)
             frame_npz.parent.mkdir(parents=True, exist_ok=True)
             np.savez(
                 frame_npz, x=out["x"], y=out["y"],
@@ -80,10 +75,9 @@ class Dataset(BaseDataset):
         ref_path = data_dir / "reference_restart.json"
         if not ref_path.exists():
             f = np.load(frame_npz)
-            out = run_tokam(
-                config, n_iter=self.restart_n_iter_ref,
-                initial_fields={"density": f["density"],
-                                "potential": f["potential"]})
+            out = run_simulation(
+                config, n_iter=self.restart_n_iter_ref, initial_fields=f,
+            )
             dump_trajectory(tokam_trajectory(out), ref_path)
         return frame_npz, ref_path
 
@@ -108,10 +102,9 @@ class Dataset(BaseDataset):
                 print(f"[Tokam2D] restart_n_iter={n_iter} exceeds the "
                       f"reference horizon {n_ref}; comparing over {n_ref} "
                       "steps. Increase restart_n_iter_ref to extend it.")
-            out = run_tokam(
-                config, n_iter=min(n_iter, n_ref),
-                initial_fields={"density": fr["density"],
-                                "potential": fr["potential"]})
+            out = run_simulation(
+                config, n_iter=min(n_iter, n_ref), initial_fields=fr
+            )
             return trajectory_diff(tokam_trajectory(out), reference)
 
         return dict(

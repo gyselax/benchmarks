@@ -1,6 +1,6 @@
 from benchopt import BaseObjective
 
-from benchmark_utils import static_field_metrics, moment_conservation
+from benchmark_utils.metrics import static_field_metrics, moment_conservation
 
 
 class Objective(BaseObjective):
