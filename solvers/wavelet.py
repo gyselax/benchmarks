@@ -1,10 +1,6 @@
 from benchopt import BaseSolver
-from benchopt import safe_import_context
 
-from benchmark_utils import WaveletCompressor
-
-with safe_import_context() as import_ctx:
-    import pywt  # noqa: F401
+from benchmark_utils.wavelet import WaveletCompressor
 
 
 class Solver(BaseSolver):

@@ -7,8 +7,6 @@ the static check; ``run_tokam`` runs the simulation (from the analytic IC or
 restarting from given fields) and ``tokam_trajectory`` turns its output into a
 per-diagnostic-step moment trajectory for the dynamic comparison.
 """
-import os
-
 import numpy as np
 
 

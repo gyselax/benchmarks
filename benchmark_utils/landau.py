@@ -19,9 +19,10 @@ import shutil
 import subprocess
 import tempfile
 
-import h5py
 import numpy as np
-import yaml
+
+# h5py and yaml are imported lazily inside the functions that use them, so that
+# importing this module (e.g. for ``landau_moments``) needs only numpy.
 
 EPS = 1e-12
 
@@ -95,6 +96,7 @@ def landau_moments(f, x, y, vx, vy, phi=None) -> dict:
 
 def read_mesh(mesh_h5) -> dict:
     """Read the (x, y, vx, vy) mesh from a GYSELALIBXX HDF5 file."""
+    import h5py
     with h5py.File(mesh_h5, "r") as h5:
         return {k: h5[name][:] for k, name in
                 (("x", "MeshX"), ("y", "MeshY"),

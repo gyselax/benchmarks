@@ -9,7 +9,7 @@ from tokam2d import run_simulation
 
 from benchmark_utils.tokam import tokam_moments, tokam_trajectory
 from benchmark_utils.storage import dump_trajectory, load_trajectory
-from benchmark_utils.comparison import trajectory_diff
+from benchmark_utils.metrics import trajectory_diff
 
 
 class Dataset(BaseDataset):
