@@ -5,6 +5,7 @@ __pycache__/
 # lives in data/<dataset>_n*/. Keep the tracked input configs in
 # data/<dataset>/configs/.
 /data/*
-!/data/tokam2d/
-!/data/landau2X2V/
+!/data/tokam2d/configs/
+!/data/landau2X2V/configs/
 /outputs/
+/GYSELALIBXX_*
