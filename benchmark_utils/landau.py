@@ -105,6 +105,7 @@ def read_mesh(mesh_h5) -> dict:
 
 def read_landau_frame(h5_path, mesh_h5=None, dataset_name="fdistribu"):
     """Read one ``fdistribu`` tensor and its mesh."""
+    import h5py
     with h5py.File(h5_path, "r") as h5:
         f = h5[dataset_name][:]
     return f, read_mesh(mesh_h5 if mesh_h5 is not None else h5_path)
@@ -112,6 +113,7 @@ def read_landau_frame(h5_path, mesh_h5=None, dataset_name="fdistribu"):
 
 def source_frame(source_h5, dataset_name="fdistribu") -> np.ndarray:
     """Read the uncompressed frame stored in ``source_h5``."""
+    import h5py
     with h5py.File(source_h5, "r") as h5:
         return h5[dataset_name][:]
 
@@ -126,6 +128,7 @@ def _run_landau(binary, params_yaml, pdi_yaml, work_dir, *, nbiter,
                 restart_file="none", nb_restart=0, n_ranks=4,
                 mpi_launcher="mpirun"):
     """Run the mini-app in ``work_dir`` and return the list of diag files."""
+    import yaml
     work_dir = pathlib.Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
 
@@ -165,6 +168,7 @@ def generate_landau_frame(binary, params_yaml, pdi_yaml, out_dir, *,
 
 def _read_diag_moments(diag_files, mesh, dataset_name="fdistribu") -> dict:
     """Per-diagnostic-step moment trajectory from a list of diag files."""
+    import h5py
     traj = {k: [] for k in
             ("time", "mass", "momentum_x", "momentum_y", "momentum_norm",
              "kinetic_energy", "potential_energy")}
@@ -188,6 +192,7 @@ def landau_restart_trajectory(binary, params_yaml, pdi_yaml, source_h5, f,
                               mesh, *, n_iter, n_ranks=4,
                               mpi_launcher="mpirun", dataset_name="fdistribu"):
     """Restart from frame ``f`` for ``n_iter`` steps; moment trajectory."""
+    import h5py
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         restart = tmp / "restart.h5"

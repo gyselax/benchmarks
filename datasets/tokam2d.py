@@ -76,7 +76,9 @@ class Dataset(BaseDataset):
         if not ref_path.exists():
             f = np.load(frame_npz)
             out = run_simulation(
-                config, n_iter=self.restart_n_iter_ref, initial_fields=f,
+                config, n_iter=self.restart_n_iter_ref,
+                initial_fields={"density": f["density"],
+                                "potential": f["potential"]},
             )
             dump_trajectory(tokam_trajectory(out), ref_path)
         return frame_npz, ref_path
