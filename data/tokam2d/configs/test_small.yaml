@@ -1,0 +1,77 @@
+grid:
+  Nx: 16
+  Ny: 16
+  Lx: 16.0
+  Ly: 16.0
+  x64_precision: false
+time:
+  dt_rk4: 1
+  dt_diag: null
+  rk4_per_diag: 1
+  Tsim: null
+  Nt_rk4: null
+  Nt_diag: 5
+pde:
+  eq: SOL
+  sigma_nn: 6.1e-05
+  sigma_nphi: 6.1e-05
+  sigma_phiphi: 6.1e-05
+  sigma_phin: 6.1e-05
+  C: 0.0
+  kappa: 0.0
+  HW_duration: 50.0
+  dissipation_type:
+  - diffusion
+  Dn:
+  - 0.01
+  Dphi:
+  - 0.01
+  g: 0.0008
+initial_condition:
+  load_init_fields: false
+  load_init_path: /path/to/sim_folder
+  init_gauss_ampl_n:
+  - 4.0
+  init_gauss_ampl_phi:
+  - 0.0
+  init_gauss_sigma_x:
+  - 8.0
+  init_gauss_sigma_y:
+  - 0.0
+  init_gauss_x0:
+  - 0.0
+  init_gauss_y0:
+  - 0.0
+  init_uni_ampl_n: 1.0
+  init_uni_ampl_phi: 0.0
+  init_harm_kx:
+  - 0
+  init_harm_ky:
+  - 12
+  init_harm_ampl_n:
+  - 0.0
+  init_harm_ampl_phi:
+  - 0.0001
+  init_rand_ampl_n: 0.0
+  init_rand_ampl_phi: 1.0e-16
+source:
+  source_gauss_ampl_n:
+  - 0.001
+  source_gauss_ampl_phi:
+  - 0.0
+  source_gauss_sigma_x:
+  - 8.0
+  source_gauss_sigma_y:
+  - 0.0
+  source_gauss_x0:
+  - 0.0
+  source_gauss_y0:
+  - 0.0
+  source_balance_par_loss: false
+callbacks:
+  check_crash: true
+  save_real: true
+  save_fft: false
+inline_operations:
+  fft_filter: true
+  compute_time_derivatives: false

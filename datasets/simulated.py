@@ -13,9 +13,6 @@ class Dataset(BaseDataset):
     parameters = {
         "case": ["tokam2d", "landau2X2V"],
     }
-    # landau_moments lives in benchmark_utils.landau, which imports h5py/yaml
-    # at module load (component-level dependency), so declare them here too.
-    requirements = ["numpy", "h5py", "pyyaml"]
 
     def get_data(self) -> dict:
         rng = np.random.default_rng(0)

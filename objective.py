@@ -11,6 +11,9 @@ class Objective(BaseObjective):
     # Compression is deterministic given parameters: a single pass is enough.
     sampling_strategy = "run_once"
 
+    # Need H5 for processing simulations outputs
+    requirements = ["h5py"]
+
     # Number of diagnostic steps run by the dynamic restart evaluation. Only
     # used by datasets that expose a restart function; ignored otherwise.
     parameters = {
